@@ -2,13 +2,12 @@ from argparse import ArgumentParser
 import requests
 import click
 import json
-import sys
 import os
 
-import .colors
 from .utils import get_marketplace_version
 from .utils import get_token
-from truewho import __version__
+from . import colors
+from . import __version__
 
 __default_endpoint__ = "https://search5-noneu.truecaller.com/v2/search"
 __default_config_path__ = "~/.config/truewho-config.json"
@@ -85,9 +84,15 @@ def read_config(config_path):
     except FileNotFoundError:
         print("Unable to find config file at:", config_path)
         print(
-            f"Please run {colors.red}{sys.argv[0]} -k {config_path}{colors.end} to make the config file."
+            f"Please run {colors.red}truewho -k {config_path}{colors.end} to make the config file."
         )
         exit(11)
+    except json.decoder.JSONDecodeError:
+        print("The config file at", config_path, "is broken.")
+        print(
+            f"Please run {colors.red}truewho -k {config_path}{colors.end} to remake the config file."
+        )
+        exit(12)
     return config
 
 
