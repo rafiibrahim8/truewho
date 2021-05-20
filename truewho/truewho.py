@@ -14,6 +14,11 @@ __default_config_path__ = "~/.config/truewho-config.json"
 __default_tc_version__ = "11.59.8"
 
 
+def resolve_config_path(config_path):
+    if isinstance(config_path, tuple) or config_path == None:
+        config_path = __default_config_path__
+    return config_path
+
 def mk_config(path):
     path = path if path else __default_config_path__
     exp_path = os.path.expanduser(path)
@@ -71,13 +76,14 @@ def do_search(
         number_e164 = res["data"][0]["phones"][0]["e164Format"]
         country = res["data"][0]["phones"][0]["countryCode"]
     except:
+        if res["status"] == 40101 or res["message"] == "Unauthorized":
+            return None
         return number, "error", "error"
     return number_e164, name, country
 
 
 def read_config(config_path):
-    if isinstance(config_path, tuple) or config_path == None:
-        config_path = __default_config_path__
+    config_path = resolve_config_path(config_path)
     try:
         with open(os.path.expanduser(config_path), "r") as f:
             config = json.load(f)
@@ -99,9 +105,17 @@ def read_config(config_path):
 def print_name_or_country(number, config_path, p_type="name"):
     assert p_type in ["name", "country"]
     config = read_config(config_path)
-    _, name, country = do_search(
+    data = do_search(
         number, config["auth_token"], config["country_code"], config["tc_version"]
     )
+    if data == None:
+        print("Token expired.")
+        print(
+            f"Please run {colors.red}truewho -k {resolve_config_path(config_path)}{colors.end} to remake the config file."
+        )
+        return
+    _, name, country = data
+
     if p_type == "name":
         print(name)
     else:
@@ -112,13 +126,21 @@ def print_list(numbers, config_path):
     config = read_config(config_path)
 
     template_str = "{0: ^18} {1: ^30} {2: ^7}"
-    print(template_str.format("Number", "Name", "Contry"))
-    print(template_str.format("--------", "------", "-------"))
 
-    for n in numbers:
-        number, name, country = do_search(
+    for i, n in enumerate(numbers):
+        data = do_search(
             n, config["auth_token"], config["country_code"], config["tc_version"]
         )
+        if data == None:
+            print("Token expired.")
+            print(
+                f"Please run {colors.red}truewho -k {resolve_config_path(config_path)}{colors.end} to remake the config file."
+            )
+            return
+        if i == 0:
+            print(template_str.format("Number", "Name", "Contry"))
+            print(template_str.format("--------", "------", "-------"))
+        number, name, country = data
         print(template_str.format(number, name, country))
 
 
