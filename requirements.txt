@@ -1,3 +1,4 @@
 phone-iso3166
 requests
 click
+zipp>=3.19.1 # not directly required, pinned by Snyk to avoid a vulnerability
